@@ -5,14 +5,13 @@ const groupApi = getGroupApi();
 
 export async function fetchGroups({ limit, offset }) {
   let groupsData = await groupApi.listGroups(limit, offset);
-  let groups = groupsData.data;
-  return Promise.all(groups.map(async group => {
+  return groupsData.data ? Promise.all(groupsData.data.map(async group => {
     let groupWithUsers = await groupApi.getGroup(group.uuid);
     return { ...group, members: groupWithUsers.principals };
   })).then(data => ({
     ...groupsData,
     data
-  }));
+  })) : groupsData;
 }
 
 export async function fetchGroup(uuid) {
@@ -39,8 +38,18 @@ export async function addGroup(data) {
   if (data.user_list && data.user_list.length > 0) {
     return groupApi.addPrincipalToGroup(newGroup.uuid, { principals: data.user_list });
   }
+
+  return newGroup;
 }
 
 export async function removeGroup(groupId) {
   return await groupApi.deleteGroup(groupId);
+}
+
+export async function deletePrincipalsFromGroup(groupId, users) {
+  return await groupApi.deletePrincipalFromGroup(groupId, users.join(','));
+}
+
+export async function addPrincipalsToGroup(groupId, users) {
+  return await groupApi.addPrincipalToGroup(groupId, { principals: users });
 }

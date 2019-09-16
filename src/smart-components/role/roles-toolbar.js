@@ -1,14 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
 import { Pagination } from '@redhat-cloud-services/frontend-components/components/Pagination';
 import { TableToolbar } from '@redhat-cloud-services/frontend-components/components/TableToolbar';
-import { Button, Level, LevelItem, Toolbar, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import { Level, LevelItem, Toolbar, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 
 import { getCurrentPage } from '../../helpers/shared/helpers';
-import GroupFilterToolbar from '../../presentational-components/principal/principals-filter-toolbar';
+import RolesFilterToolbar from '../../presentational-components/role/roles-filter-toolbar';
 
-const GroupToolbar = ({
+const RolesToolbar = ({
   onFilterChange,
   filterValue,
   pagination,
@@ -21,18 +20,7 @@ const GroupToolbar = ({
         <Toolbar>
           <ToolbarGroup>
             <ToolbarItem>
-              <GroupFilterToolbar onFilterChange={ value => onFilterChange(value) } filterValue={ filterValue }/>
-            </ToolbarItem>
-          </ToolbarGroup>
-          <ToolbarGroup>
-            <ToolbarItem>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Link to="/principals/add-principal">
-                <Button variant="primary" aria-label="Edit members">
-                  Edit Members
-                </Button>
-              </Link>
+              <RolesFilterToolbar onFilterChange={ value => onFilterChange(value) } filterValue={ filterValue }/>
             </ToolbarItem>
           </ToolbarGroup>
         </Toolbar>
@@ -51,7 +39,7 @@ const GroupToolbar = ({
   </TableToolbar>
 );
 
-GroupToolbar.propTypes = {
+RolesToolbar.propTypes = {
   onFilterChange: PropTypes.func.isRequired,
   filterValue: PropTypes.string.isRequired,
   pagination: PropTypes.shape({
@@ -62,4 +50,4 @@ GroupToolbar.propTypes = {
   handleSetPage: PropTypes.func.isRequired
 };
 
-export default GroupToolbar;
+export default RolesToolbar;
