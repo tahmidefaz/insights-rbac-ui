@@ -11,7 +11,8 @@ import { fetchRoles } from '../../../redux/actions/role-actions';
 import SummaryContent from './summary-content';
 import GroupInformation from './group-information';
 import SetUsers from './set-users';
-import PolicyStep from './policy-step';
+import PolicyInformation from './policy-information';
+import PolicySetRoles from './policy-set-roles';
 
 const AddGroupModal = ({
   history: { push },
@@ -50,7 +51,13 @@ const AddGroupModal = ({
     { name: 'General Information', component: new GroupInformation(formData, handleChange) },
     { name: 'Set Users', component: new SetUsers(setGroupData, selectedUsers, setSelectedUsers,
       optionIdx, setOptionIdx, createOption, handleChange) },
-    { name: 'Policy Step', component: new PolicyStep(formData, handleChange, selectedRoles, setSelectedRoles, roles) },
+    {
+      name: 'Create policy',
+      steps: [
+        { name: 'Name and description', component: new PolicyInformation(formData, handleChange) },
+        { name: 'Add roles', component: new PolicySetRoles(formData, selectedRoles, setSelectedRoles, roles) }
+      ]
+    },
     { name: 'Review', component: new SummaryContent({ values: formData, selectedUsers, selectedRoles }),
       nextButtonText: 'Confirm' }
   ];
@@ -64,14 +71,21 @@ const AddGroupModal = ({
   }, []);
 
   const  onSubmit =  async() => {
-    const user_data = { ...formData, user_list: selectedUsers.map(user => ({ username: user.label })) };
+    const user_data = { ...formData, user_list: selectedUsers ? selectedUsers.map(user => ({ username: user.label })) : undefined };
     const group = await addGroup(user_data);
-    const policy_data = { name: formData.policyName,
-      description: formData.policyDescription,
-      group: group.value.uuid,
-      roles: selectedRoles.map(role => role.value) };
-    // TODO - only create the policy if the user selected a policy name and at least a role
-    return createPolicy(policy_data).payload.then(() => fetchGroups()).then(push('/groups'));
+    if (selectedRoles && selectedRoles.length > 0) {
+      const policy_data = {
+        name: formData.policyName,
+        description: formData.policyDescription,
+        group: group.value.uuid,
+        roles: selectedRoles.map(role => role.value)
+      };
+      return createPolicy(policy_data).payload.then(() => fetchGroups()).then(push('/groups'));
+    }
+    else {
+      fetchGroups().then(push('/groups'));
+      return group;
+    }
   };
 
   const onCancel = () => {
@@ -111,8 +125,6 @@ AddGroupModal.propTypes = {
   addNotification: PropTypes.func.isRequired,
   fetchGroups: PropTypes.func.isRequired,
   fetchGroup: PropTypes.func.isRequired,
-  createPolicies: PropTypes.func.isRequired,
-
   selectedGroup: PropTypes.object,
   inputValue: PropTypes.string,
   users: PropTypes.array,

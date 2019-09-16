@@ -16,12 +16,17 @@ import AppTabs from '../app-tabs/app-tabs';
 import { defaultSettings } from '../../helpers/shared/pagination';
 
 const columns = [{ title: 'Name', cellFormatters: [ expandable ]}, 'Description', 'Members', 'Last modified' ];
-const tabItems = [{ eventKey: 0, title: 'Groups', name: '/groups' }];
+const tabItems = [
+  { eventKey: 0, title: 'Groups', name: '/groups' },
+  { eventKey: 1, title: 'Roles', name: '/roles' }
+];
 
-const Groups = ({ fetchGroups, groups, pagination, history: { push }}) => {
+const Groups = ({ fetchGroups, isLoading, pagination, history: { push }}) => {
   const [ filterValue, setFilterValue ] = useState('');
-  const fetchData = (setRows) => {
-    fetchGroups().then(({ value: { data }}) => setRows(createRows(data, filterValue)));
+  const [ groups, setGroups ] = useState([]);
+
+  const fetchData = () => {
+    fetchGroups().then(({ value: { data }}) => setGroups(data));
   };
 
   const routes = () => <Fragment>
@@ -35,8 +40,8 @@ const Groups = ({ fetchGroups, groups, pagination, history: { push }}) => {
       [
         {
           title: 'Edit',
-          onClick: (_event, _rowId, group) =>
-            push(`/groups/edit/${group.uuid}`)
+          onClick: (_event, _rowId, group) => {
+            push(`/groups/edit/${group.uuid}`);}
         },
         {
           title: 'Delete',
@@ -79,6 +84,7 @@ const Groups = ({ fetchGroups, groups, pagination, history: { push }}) => {
         filterValue={ filterValue }
         setFilterValue={ setFilterValue }
         toolbarButtons = { toolbarButtons }
+        isLoading = { isLoading }
       />
     </Fragment>;
 
