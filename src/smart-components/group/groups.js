@@ -1,11 +1,12 @@
 import React, { Fragment, useState } from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { Link, Route, Switch } from 'react-router-dom';
 import { expandable } from '@patternfly/react-table';
-import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import { Button, Stack, StackItem, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import AddGroupWizard from './add-group/add-group-wizard';
-import AddGroup from './add-group-modal';
+import EditGroup from './edit-group-modal';
 import RemoveGroup from './remove-group-modal';
 import { TableToolbarView } from '../../presentational-components/shared/table-toolbar-view';
 import { createRows } from './group-table-helpers';
@@ -16,18 +17,23 @@ import AppTabs from '../app-tabs/app-tabs';
 import { defaultSettings } from '../../helpers/shared/pagination';
 
 const columns = [{ title: 'Name', cellFormatters: [ expandable ]}, 'Description', 'Members', 'Last modified' ];
-const tabItems = [{ eventKey: 0, title: 'Groups', name: '/groups' }];
+const tabItems = [
+  { eventKey: 0, title: 'Groups', name: '/groups' },
+  { eventKey: 1, title: 'Roles', name: '/roles' }
+];
 
-const Groups = ({ fetchGroups, groups, pagination, history: { push }}) => {
+const Groups = ({ fetchGroups, isLoading, pagination, history: { push }}) => {
   const [ filterValue, setFilterValue ] = useState('');
-  const fetchData = (setRows) => {
-    fetchGroups().then(({ value: { data }}) => setRows(createRows(data, filterValue)));
+  const [ groups, setGroups ] = useState([]);
+
+  const fetchData = () => {
+    fetchGroups(pagination).then(({ value: { data }}) => setGroups(data));
   };
 
   const routes = () => <Fragment>
-    <Route exact path="/groups/add-group" component={ AddGroupWizard } />
-    <Route exact path="/groups/edit/:id" component={ AddGroup } />
-    <Route exact path="/groups/remove/:id" component={ RemoveGroup } />
+    <Route exact path="/groups/add-group" render={ props => <AddGroupWizard { ...props } postMethod={ fetchData } /> } />
+    <Route exact path="/groups/edit/:id" render={ props => <EditGroup { ...props } postMethod={ fetchData } /> } />
+    <Route exact path="/groups/remove/:id" render={ props => <RemoveGroup { ...props } postMethod={ fetchData } /> } />
   </Fragment>;
 
   const actionResolver = (_groupData, { rowIndex }) =>
@@ -35,8 +41,8 @@ const Groups = ({ fetchGroups, groups, pagination, history: { push }}) => {
       [
         {
           title: 'Edit',
-          onClick: (_event, _rowId, group) =>
-            push(`/groups/edit/${group.uuid}`)
+          onClick: (_event, _rowId, group) => {
+            push(`/groups/edit/${group.uuid}`);}
         },
         {
           title: 'Delete',
@@ -60,28 +66,32 @@ const Groups = ({ fetchGroups, groups, pagination, history: { push }}) => {
   </ToolbarGroup>;
 
   const renderGroupsList = () =>
-    <Fragment>
-      <TopToolbar>
-        <TopToolbarTitle title="User access management" />
-        <AppTabs tabItems={ tabItems }/>
-      </TopToolbar>
-      <TableToolbarView
-        data={ groups }
-        createRows={ createRows }
-        columns={ columns }
-        fetchData={ fetchData }
-        request={ fetchGroups }
-        routes={ routes }
-        actionResolver={ actionResolver }
-        titlePlural="groups"
-        titleSingular="group"
-        pagination={ pagination }
-        filterValue={ filterValue }
-        setFilterValue={ setFilterValue }
-        toolbarButtons = { toolbarButtons }
-      />
-    </Fragment>;
-
+    <Stack>
+      <StackItem>
+        <TopToolbar paddingBottm={ false }>
+          <TopToolbarTitle title="User access management"/>
+          <AppTabs tabItems={ tabItems }/>
+        </TopToolbar>
+      </StackItem>
+      <StackItem>
+        <TableToolbarView
+          data={ groups }
+          createRows={ createRows }
+          columns={ columns }
+          fetchData={ fetchData }
+          request={ fetchGroups }
+          routes={ routes }
+          actionResolver={ actionResolver }
+          titlePlural="groups"
+          titleSingular="group"
+          pagination={ pagination }
+          filterValue={ filterValue }
+          setFilterValue={ setFilterValue }
+          toolbarButtons = { toolbarButtons }
+          isLoading = { isLoading }
+        />
+      </StackItem>
+    </Stack>;
   return (
     <Switch>
       <Route path={ '/groups/detail/:uuid' } render={ props => <Group { ...props }/> } />
@@ -97,11 +107,9 @@ const mapStateToProps = ({ groupReducer: { groups, filterValue, isLoading }}) =>
   searchFilter: filterValue
 });
 
-const mapDispatchToProps = dispatch => {
-  return {
-    fetchGroups: apiProps => dispatch(fetchGroups(apiProps))
-  };
-};
+const mapDispatchToProps = dispatch => bindActionCreators({
+  fetchGroups
+}, dispatch);
 
 Groups.propTypes = {
   history: PropTypes.shape({
