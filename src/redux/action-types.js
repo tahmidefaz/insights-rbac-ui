@@ -6,8 +6,11 @@ export const ADD_GROUP = 'ADD_GROUP';
 export const UPDATE_GROUP = 'UPDATE_GROUP';
 export const REMOVE_GROUP = 'REMOVE_GROUP';
 
+export const ADD_ROLE = 'ADD_ROLE';
 export const FETCH_ROLE = 'FETCH_ROLE';
 export const FETCH_ROLES = 'FETCH_ROLES';
+export const REMOVE_ROLE = 'REMOVE_ROLE';
+export const RESET_SELECTED_ROLE = 'RESET_SELECTED_ROLE';
 
 export const FETCH_GROUP_POLICIES = 'FETCH_GROUP_POLICIES';
 export const FETCH_POLICY = 'FETCH_POLICY';

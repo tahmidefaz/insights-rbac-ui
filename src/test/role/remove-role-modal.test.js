@@ -7,19 +7,19 @@ import { MemoryRouter, Route } from 'react-router-dom';
 import promiseMiddleware from 'redux-promise-middleware';
 import { notificationsMiddleware, ADD_NOTIFICATION } from '@redhat-cloud-services/frontend-components-notifications/';
 import { RBAC_API_BASE } from '../../utilities/constants';
-import RemoveGroupModal from '../../smart-components/group/remove-group-modal';
-import { groupsInitialState } from '../../redux/reducers/group-reducer';
-import { REMOVE_GROUP, FETCH_GROUP } from '../../redux/action-types';
+import RemoveRoleModal from '../../smart-components/role/remove-role-modal';
+import { rolesInitialState } from '../../redux/reducers/role-reducer';
+import { REMOVE_ROLE, FETCH_ROLE, FETCH_ROLES } from '../../redux/action-types';
 
-describe('<RemoveGroupModal />', () => {
+describe('<RemoveRoleModal />', () => {
   let initialProps;
   const middlewares = [ thunk, promiseMiddleware(), notificationsMiddleware() ];
   let mockStore;
   let initialState;
 
-  const GroupWrapper = ({ store, children }) => (
+  const RoleWrapper = ({ store, children }) => (
     <Provider store={ store }>
-      <MemoryRouter initialEntries={ [ '/groups/', '/groups/123/', '/groups/' ] } initialIndex={ 1 }>
+      <MemoryRouter initialEntries={ [ '/roles/', '/roles/123/', '/roles/' ] } initialIndex={ 1 }>
         { children }
       </MemoryRouter>
     </Provider>
@@ -27,15 +27,14 @@ describe('<RemoveGroupModal />', () => {
 
   beforeEach(() => {
     initialProps = {
-      id: '123',
-      postMethod: jest.fn()
+      id: '123'
     };
     mockStore = configureStore(middlewares);
     initialState = {
-      groupReducer: {
-        ...groupsInitialState,
+      roleReducer: {
+        ...rolesInitialState,
         isLoading: true,
-        group: {
+        role: {
           name: 'Foo',
           uuid: '1'
         }
@@ -46,42 +45,42 @@ describe('<RemoveGroupModal />', () => {
   it('should call cancel action', () => {
     const store = mockStore(initialState);
 
-    apiClientMock.get(`${RBAC_API_BASE}/groups/123/`, mockOnce((req, res) => {
+    apiClientMock.get(`${RBAC_API_BASE}/roles/123/`, mockOnce((req, res) => {
       expect(req).toBeTruthy();
       return res.status(200).body({ data: []});
     }));
 
     const wrapper = mount(
-      <GroupWrapper store={ store }>
-        <Route path="/groups/:id/" render={ (args) => <RemoveGroupModal { ...args } { ...initialProps } /> } />
-      </GroupWrapper>
+      <RoleWrapper store={ store }>
+        <Route path="/roles/:id/" render={ (args) => <RemoveRoleModal { ...args } { ...initialProps } /> } />
+      </RoleWrapper>
     );
     wrapper.find('button').first().simulate('click');
-    expect(wrapper.find(MemoryRouter).children().props().history.location.pathname).toEqual('/groups/');
+    expect(wrapper.find(MemoryRouter).children().props().history.location.pathname).toEqual('/roles/');
   });
 
   it('should call the remove action', (done) => {
     const store = mockStore(initialState);
 
-    apiClientMock.get(`${RBAC_API_BASE}/groups/123/`, mockOnce((req, res) => {
+    apiClientMock.get(`${RBAC_API_BASE}/roles/123/`, mockOnce((req, res) => {
       expect(req).toBeTruthy();
       return res.status(200).body({ data: []});
     }));
 
-    apiClientMock.delete(`${RBAC_API_BASE}/groups/123/`, mockOnce((req, res) => {
+    apiClientMock.delete(`${RBAC_API_BASE}/roles/123/`, mockOnce((req, res) => {
       expect(req).toBeTruthy();
       return res.status(200);
     }));
 
-    apiClientMock.get(`${RBAC_API_BASE}/groups/`, mockOnce((req, res) => {
+    apiClientMock.get(`${RBAC_API_BASE}/roles/`, mockOnce((req, res) => {
       expect(req).toBeTruthy();
       return res.status(200).body({ data: []});
     }));
 
     const wrapper = mount(
-      <GroupWrapper store={ store }>
-        <Route path="/groups/:id/" render={ (args) => <RemoveGroupModal { ...args } { ...initialProps } /> } />
-      </GroupWrapper>
+      <RoleWrapper store={ store }>
+        <Route path="/roles/:id/" render={ (args) => <RemoveRoleModal { ...args } { ...initialProps } /> } />
+      </RoleWrapper>
     );
 
     expect.extend({
@@ -102,15 +101,16 @@ describe('<RemoveGroupModal />', () => {
     wrapper.find('button').last().simulate('click');
     setImmediate(() => {
       const actions = store.getActions();
-      expect(actions).toContainObj({ type: `${FETCH_GROUP}_PENDING` });
-      expect(actions).toContainObj({ type: `${REMOVE_GROUP}_PENDING`,
-        meta: { notifications: { fulfilled: { description: 'The group was removed successfully.',
-          title: 'Success removing group', variant: 'success' }}}},);
-      expect(actions).toContainObj({ type: `${FETCH_GROUP}_PENDING` });
+      expect(actions).toContainObj({ type: `${FETCH_ROLE}_PENDING` });
+      expect(actions).toContainObj({ type: `${REMOVE_ROLE}_PENDING`,
+        meta: { notifications: { fulfilled: { description: 'The role was removed successfully.',
+          title: 'Success removing role', variant: 'success' }}}},);
+      expect(actions).toContainObj({ type: `${FETCH_ROLE}_PENDING` });
       expect(actions).toContainObj({ type: ADD_NOTIFICATION,
-        payload: expect.objectContaining({ description: 'The group was removed successfully.' }) });
-      expect(actions).toContainObj({ type: `${REMOVE_GROUP}_FULFILLED` });
-      expect(initialProps.postMethod).toHaveBeenCalled();
+        payload: expect.objectContaining({ description: 'The role was removed successfully.' }) });
+      expect(actions).toContainObj({ type: `${REMOVE_ROLE}_FULFILLED` });
+      expect(actions).toContainObj({ type: `${FETCH_ROLES}_PENDING` });
+      expect(actions).toContainObj({ type: `${FETCH_ROLES}_FULFILLED` });
       done();
     });
   });
