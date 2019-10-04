@@ -9,7 +9,7 @@ import { defaultSettings  } from '../../helpers/shared/pagination';
 import FilterToolbar from '../../presentational-components/shared/filter-toolbar-item';
 import { Section } from '@redhat-cloud-services/frontend-components';
 import { TableToolbar } from '@redhat-cloud-services/frontend-components/components/TableToolbar';
-import { DataListLoader } from './loader-placeholders';
+import { ListLoader } from './loader-placeholders';
 
 export const TableToolbarView = ({
   request,
@@ -20,24 +20,28 @@ export const TableToolbarView = ({
   fetchData,
   data,
   actionResolver,
+  areActionsDisabled,
   routes,
   titlePlural,
   titleSingular,
   pagination,
   setCheckedItems,
   filterValue,
+  isLoading,
   setFilterValue }) => {
   const [ rows, setRows ] = useState([]);
-  const [ isLoading ] = useState(false);
 
   useEffect(() => {
     fetchData(setRows, filterValue, pagination);
-    scrollToTop();
-  }, []);
+  }, [ filterValue, pagination.limit, pagination.offset ]);
 
   useEffect(() => {
     setRows(createRows(data, filterValue));
-  }, [ data, filterValue, pagination.limit, pagination.offset ]);
+  }, [ data ]);
+
+  useEffect(() => {
+    scrollToTop();
+  }, []);
 
   const handleOnPerPageSelect = limit => request({
     offset: pagination.offset,
@@ -113,8 +117,8 @@ export const TableToolbarView = ({
   };
 
   return (
-    isLoading ? <DataListLoader/> :
-      <Section className="data-table-pane" page-type={ `tab-${titlePlural}` } id={ `tab-${titlePlural}` }>
+    isLoading ? <ListLoader/> :
+      <Section type="content" id={ `tab-${titlePlural}` }>
         { routes() }
         { renderToolbar() }
         <Table
@@ -124,7 +128,7 @@ export const TableToolbarView = ({
           cells={ columns }
           onSelect={ isSelectable && selectRow }
           actionResolver={ actionResolver }
-          className="table-fix"
+          areActionsDisabled={ areActionsDisabled }
         >
           <TableHeader />
           <TableBody />
@@ -150,13 +154,16 @@ TableToolbarView.propTypes = {
   titleSingular: propTypes.string,
   routes: propTypes.func,
   actionResolver: propTypes.func,
+  areActionsDisabled: propTypes.func,
   setCheckedItems: propTypes.func,
   filterValue: propTypes.string,
-  setFilterValue: propTypes.func
+  setFilterValue: propTypes.func,
+  isLoading: propTypes.bool
 };
 
 TableToolbarView.defaultProps = {
   requests: [],
+  isLoading: false,
   pagination: defaultSettings,
   toolbarButtons: () => null,
   isSelectable: null,
