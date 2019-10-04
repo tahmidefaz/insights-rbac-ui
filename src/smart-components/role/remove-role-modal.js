@@ -5,26 +5,27 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Modal, Button, Grid, GridItem, Text, TextContent, TextVariants } from '@patternfly/react-core';
 import { addNotification } from '@redhat-cloud-services/frontend-components-notifications/';
-import { fetchGroup, removeGroup } from '../../redux/actions/group-actions';
+import { fetchRoles, fetchRole, removeRole } from '../../redux/actions/role-actions';
 import { FormItemLoader } from '../../presentational-components/shared/loader-placeholders';
 
-const RemoveGroupModal = ({
+const RemoveRoleModal = ({
   history: { goBack, push },
   match: { params: { id }},
-  removeGroup,
-  group,
+  removeRole,
+  role,
   isLoading,
-  fetchGroup,
-  postMethod,
-  closeUrl
+  fetchRole,
+  fetchRoles
 }) => {
   useEffect(() => {
-    fetchGroup(id);
+    fetchRole(id);
   }, []);
 
-  const onSubmit = () =>
-    postMethod ? removeGroup(id).then(() => postMethod()).then(push(closeUrl)) :
-      removeGroup(id).then(() => push(closeUrl));
+  const onSubmit = () => removeRole(id)
+  .then(() => {
+    fetchRoles();
+    push('/roles');
+  });
 
   const onCancel = () => goBack();
 
@@ -47,14 +48,14 @@ const RemoveGroupModal = ({
         <GridItem span={ 5 }>
           <TextContent>
             <Text component={ TextVariants.h1 }>
-                Removing Group:
+                Removing Role:
             </Text>
           </TextContent>
         </GridItem>
         <GridItem span={ 6 }>
           <TextContent>
             { !isLoading && <Text component={ TextVariants.h1 }>
-              { group.name }
+              { role.name }
             </Text> }
           </TextContent>
           { isLoading && <FormItemLoader/> }
@@ -64,40 +65,40 @@ const RemoveGroupModal = ({
   );
 };
 
-RemoveGroupModal.defaultProps = {
-  group: {},
-  isLoading: true,
-  closeUrl: '/groups'
+RemoveRoleModal.defaultProps = {
+  role: {},
+  isLoading: true
 };
 
-RemoveGroupModal.propTypes = {
+RemoveRoleModal.propTypes = {
+  addNotification: PropTypes.func.isRequired,
+  fetchRole: PropTypes.func.isRequired,
+  fetchRoles: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
+  history: PropTypes.shape({
+    goBack: PropTypes.func.isRequired,
+    push: PropTypes.func.isRequired
+  }).isRequired,
   match: PropTypes.shape({
     params: PropTypes.shape({
       id: PropTypes.string
     }).isRequired
   }).isRequired,
-  history: PropTypes.shape({
-    goBack: PropTypes.func.isRequired,
-    push: PropTypes.func.isRequired
-  }).isRequired,
-  removeGroup: PropTypes.func.isRequired,
-  fetchGroup: PropTypes.func.isRequired,
-  addNotification: PropTypes.func.isRequired,
-  postMethod: PropTypes.func,
-  isLoading: PropTypes.bool,
-  group: PropTypes.object,
-  closeUrl: PropTypes.string
+  removeRole: PropTypes.func.isRequired,
+  role: PropTypes.object
 };
 
-const mapStateToProps = ({ groupReducer: { selectedGroup, isRecordLoading }}) => ({
-  group: selectedGroup,
-  isLoading: isRecordLoading
+const mapStateToProps = ({ roleReducer: { roles, selectedRole, isRecordLoading }}) => ({
+  role: selectedRole,
+  isLoading: isRecordLoading,
+  pagination: roles.meta
 });
 
 const mapDispatchToProps = (dispatch) => bindActionCreators({
   addNotification,
-  fetchGroup,
-  removeGroup
+  fetchRole,
+  fetchRoles,
+  removeRole
 }, dispatch);
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(RemoveGroupModal));
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(RemoveRoleModal));
