@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Form,
@@ -12,38 +12,78 @@ import {
   TextVariants,
   Title
 } from '@patternfly/react-core';
+import asyncDebounce from '../../../utilities/async-debounce';
+import { fetchPolicyByName } from '../../../helpers/policy/policy-helper';
 
-const PolicyInformation = (title, formValue, onHandleChange) => {
+const PolicyInfoText = ({ title, editType }) => {
+  return (editType === 'edit') ?
+    <TextContent>
+      <Text component={ TextVariants.small }> All fields are required </Text>
+    </TextContent> :
+    <Fragment>
+      <StackItem>
+        <Title size="xl">{ title }</Title>
+      </StackItem>
+      <TextContent>
+        <Text component={ TextVariants.h6 }>Policies are the permissions set for this group.
+        Groups can have one or more policies.
+        Policies are created for a group, they cannot be shared.
+        You can only create one policy at this time.
+        It is possible to create more for this group at a later time.<br/>
+        All fields are optional.</Text>
+      </TextContent>
+    </Fragment>;
+};
+
+PolicyInfoText.propTypes = {
+  title: PropTypes.string,
+  editType: PropTypes.string
+};
+
+const PolicyInformation = ({ title, editType, formData, onHandleChange, setIsPolicyInfoValid }) => {
+  const [ error, setError ] = useState(undefined);
+  const policy = formData.policy ? formData.policy : { name: '', description: '' };
+
+  const validateName = (name) => fetchPolicyByName(name)
+  .then(({ data }) => {
+    return data.find(pol => name === pol.name)
+      ? 'Name has already been taken'
+      : undefined;
+  });
+
+  const setResult = (result) => {
+    setError(result);
+    setIsPolicyInfoValid(!result);
+  };
+
+  const debouncedValidator = (data, validateCallback) => asyncDebounce(validateName(data.name).then((result) => validateCallback(result)));
+
+  const handleNameChange = () => {
+    debouncedValidator(policy, setResult);
+  };
+
   return (
     <Fragment>
       <Form>
         <Stack gutter="md">
           <StackItem>
-            <Title size="xl">{ title }</Title>
-          </StackItem>
-          <StackItem>
-            <TextContent>
-              <Text component={ TextVariants.h6 }>Policies are the permissions set for this group.
-                  Groups can have one or more policies.
-                  Policies are created for a group, they cannot be shared.
-                  You can only create one policy at this time.
-                  It is possible to create more for this group at a later time.<br/>
-                  All fields are optional.</Text>
-            </TextContent>
+            <PolicyInfoText title= { title } editType = { editType }/>
           </StackItem>
           <StackItem>
             <FormGroup
               label="Name"
               fieldId="policy-name"
+              isValid={ !error }
+              helperTextInvalid={ error }
             >
               <TextInput
-                isRequired
                 type="text"
                 id="policy-name"
                 name="policy-name"
                 aria-describedby="policy-name"
-                value={ formValue.policyName }
-                onChange={ (_, event) => onHandleChange({ policyName: event.currentTarget.value }) }
+                value={ policy.name }
+                onBlur={ handleNameChange }
+                onChange={ (_, event) => { setError(undefined); onHandleChange({ policy: { ...policy, name: event.currentTarget.value }}); } }
               />
             </FormGroup>
           </StackItem>
@@ -53,8 +93,8 @@ const PolicyInformation = (title, formValue, onHandleChange) => {
                 type="text"
                 id="policy-description"
                 name="policy-description"
-                value={ formValue.policyDescription }
-                onChange={ (_, event) => onHandleChange({ policyDescription: event.currentTarget.value }) }
+                value={ policy.description }
+                onChange={ (_, event) => onHandleChange({ policy: { ...policy, description: event.currentTarget.value }}) }
               />
             </FormGroup>
           </StackItem>
@@ -66,11 +106,15 @@ const PolicyInformation = (title, formValue, onHandleChange) => {
 
 PolicyInformation.propTypes = {
   formData: PropTypes.object,
-  title: PropTypes.string
+  editType: PropTypes.string,
+  title: PropTypes.string,
+  onHandleChange: PropTypes.func.required,
+  setIsPolicyInfoValid: PropTypes.func.required
 };
 
 PolicyInformation.defaultProps = {
-  title: 'Create policy'
+  title: 'Create policy',
+  editType: 'add'
 };
 
 export default PolicyInformation;
