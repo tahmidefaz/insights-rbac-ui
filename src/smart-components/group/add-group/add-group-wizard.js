@@ -27,6 +27,8 @@ const AddGroupWizard = ({
   const [ selectedRoles, setSelectedRoles ] = useState([]);
   const [ optionIdx, setOptionIdx ] = useState(0);
   const [ formData, setValues ] = useState({});
+  const [ isGroupInfoValid, setIsGroupInfoValid ] = useState(false);
+  const [ isPolicyInfoValid, setIsPolicyInfoValid ] = useState(true);
 
   const handleChange = data => {
     setValues({ ...formData,  ...data });
@@ -41,28 +43,42 @@ const AddGroupWizard = ({
     };
   };
 
-  const setGroupData = (groupData) => {
+  const setGroupUsers = (groupData) => {
     if (groupData && groupData.principals) {
       setSelectedUsers(groupData.principals.map(user => (createOption(user.username))));
     }
   };
 
   const steps = [
-    { name: 'General Information', component: new GroupInformation(formData, handleChange) },
-    { name: 'Set Users', component: new SetUsers(setGroupData, selectedUsers, setSelectedUsers,
-      optionIdx, setOptionIdx, createOption, handleChange) },
+    { name: 'General Information',
+      component: new GroupInformation(formData, handleChange, setIsGroupInfoValid),
+      enableNext: isGroupInfoValid
+    },
+    { name: 'Set Users',
+      component: new SetUsers(setGroupUsers, selectedUsers, setSelectedUsers,
+        optionIdx, setOptionIdx, createOption, handleChange)
+    },
     {
       name: 'Create policy',
       steps: [
-        { name: 'Name and description', component: new PolicyInformation('Create policy (optional)', formData, handleChange) },
-        { name: 'Add roles', component: new PolicySetRoles(formData, selectedRoles, setSelectedRoles, roles) }
+        { name: 'Name and description',
+          component: new PolicyInformation({ title: 'Create policy (optional)',
+            formData, onHandleChange: handleChange, setIsPolicyInfoValid }),
+          enableNext: isPolicyInfoValid
+        },
+        { name: 'Add roles',
+          component: new PolicySetRoles({ formData, selectedRoles, setSelectedRoles, roles })
+        }
       ]
     },
-    { name: 'Review', component: new SummaryContent({ values: formData, selectedUsers, selectedRoles }),
-      nextButtonText: 'Confirm' }
+    { name: 'Review',
+      component: new SummaryContent({ values: formData, selectedUsers, selectedRoles }),
+      nextButtonText: 'Confirm',
+      enableNext: isGroupInfoValid && isPolicyInfoValid
+    }
   ];
   const fetchData = () => {
-    fetchGroup(id).payload.then((data) => setGroupData(data)).catch(() => setGroupData(undefined));
+    fetchGroup(id).payload.then((data) => setGroupUsers(data)).catch(() => setGroupUsers(undefined));
     fetchRoles().payload.then((data) => setRoles(data));
   };
 
@@ -73,20 +89,33 @@ const AddGroupWizard = ({
   const  onSubmit =  async() => {
     const user_data = { ...formData, user_list: selectedUsers ? selectedUsers.map(user => ({ username: user.label })) : undefined };
     const group = await addGroup(user_data);
-    if (selectedRoles && selectedRoles.length > 0) {
+    if (formData.policy && selectedRoles && selectedRoles.length > 0) {
       const policy_data = {
-        name: formData.policyName,
-        description: formData.policyDescription,
+        name: formData.policy.name,
+        description: formData.policy.description,
         group: group.value.uuid,
         roles: selectedRoles.map(role => role.value)
       };
-      return postMethod ? createPolicy(policy_data).payload.then(() => postMethod()).then(() => push(closeUrl)) :
-        createPolicy(policy_data).payload.then(() => push(closeUrl));
+      return postMethod ? createPolicy(policy_data).payload.then(() => postMethod()).catch(() =>
+        addNotification({
+          variant: 'danger',
+          title: `Add group`,
+          dismissable: true,
+          description: `Error creating policy`
+        })).then(() => push(closeUrl)) :
+        createPolicy(policy_data).payload.catch(() =>
+          addNotification({
+            variant: 'danger',
+            title: `Add group`,
+            dismissable: true,
+            description: `Error creating policy`
+          })).then(() => push(closeUrl));
     }
     else {
       if (postMethod) {
         postMethod();
       }
+
       push(closeUrl);
     }
   };
@@ -95,6 +124,7 @@ const AddGroupWizard = ({
     addNotification({
       variant: 'warning',
       title: 'Adding group',
+      dismissable: true,
       description: 'Adding group was cancelled by the user.'
     });
     push('/groups');
